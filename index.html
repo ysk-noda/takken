@@ -1359,27 +1359,28 @@ window.showScreen = function(id) {
 // ============================================================
 // 初期化：既存ユーザーをチェック
 // ============================================================
+function goToDashboardWithSave() {
+  localStorage.setItem('takken_user', JSON.stringify({
+    name: App.name, year: App.year, level: App.level
+  }));
+  goToDashboard();
+}
+// 診断結果画面のボタンをlocalStorage保存つきに差し替え
+document.querySelector('#screen-result .btn-primary').onclick = goToDashboardWithSave;
+
 window.onload = function() {
   const saved = localStorage.getItem('takken_user');
   if (saved) {
     // 既存ユーザー → 診断スキップしてダッシュボードへ
     const u = JSON.parse(saved);
-    App.name = u.name || '';
-    App.year = u.year || 2026;
+    App.name  = u.name  || '';
+    App.year  = u.year  || 2026;
+    App.level = u.level || '';
     goToDashboard();
   }
   // バックグラウンドで全問題をプリフェッチ（2回目以降を高速化）
   setTimeout(_warmupCache, 2000);
 };
-
-// ユーザー保存後にローカルストレージにも保存
-const _origSaveUser = saveUser;
-function goToDashboardWithSave() {
-  localStorage.setItem('takken_user', JSON.stringify({ name: App.name, year: App.year }));
-  goToDashboard();
-}
-// result画面のボタン対応
-document.querySelector('#screen-result .btn-primary').onclick = goToDashboardWithSave;
 </script>
 </body>
 </html>
