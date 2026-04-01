@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>宅建合格アプリ</title>
+<style>
+/* ===== RESET & BASE ===== */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+body{
+  font-family:'Hiragino Sans','Meiryo',sans-serif;
+  background:#f0f4f8;
+  color:#2d3748;
+  min-height:100vh;
+}
+button{
+  cursor:pointer;border:none;outline:none;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;user-select:none;
+}
+input,select{
+  outline:none;
+  font-size:16px;
+  -webkit-appearance:none;appearance:none;
+}
+
+/* ===== SCREEN（各画面の共通ラッパー）===== */
+.screen{
+  display:none;
+  width:100%;
+  min-height:100vh;
+  padding-bottom:calc(80px + env(safe-area-inset-bottom));
+}
+.screen.active{display:block}
+
+/* セットアップだけflex */
+#screen-setup.active{
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+}
+
+/* ===== コンテナ ===== */
+.container{
+  width:100%;
+  padding:0 16px;
+}
+
+/* ===== ヘッダー ===== */
+.header{
+  width:100%;
+  background:linear-gradient(135deg,#1a365d,#2b6cb0);
+  color:#fff;
+  padding:14px 16px;
+  padding-top:calc(14px + env(safe-area-inset-top));
+  display:flex;align-items:center;gap:10px;
+  position:sticky;top:0;z-index:10;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+.header h1{font-size:18px;font-weight:700}
+.header .sub{font-size:12px;opacity:.8;margin-top:2px}
+.back-btn{
+  background:rgba(255,255,255,.2);color:#fff;
+  border-radius:8px;padding:0 16px;font-size:15px;
+  height:48px;display:flex;align-items:center;
+  white-space:nowrap;flex-shrink:0;
+}
+.back-btn:active{background:rgba(255,255,255,.35)}
+
+/* ===== カード ===== */
+.card{
+  background:#fff;border-radius:14px;
+  padding:18px;margin-bottom:14px;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
+  width:100%;
+}
+.card-title{
+  font-size:14px;font-weight:700;color:#4a5568;
+  margin-bottom:14px;display:flex;align-items:center;gap:6px;
+}
+.card-title::before{
+  content:'';display:inline-block;
+  width:4px;height:16px;background:#2b6cb0;border-radius:2px;
+}
+
+/* ===== セットアップ ===== */
+#screen-setup{background:#1a365d}
+.setup-hero{
+  text-align:center;padding:48px 20px 32px;color:#fff;
+  background:linear-gradient(180deg,#1a365d 0%,#2b6cb0 100%);
+}
+.setup-hero h2{font-size:28px;font-weight:800;margin-bottom:10px}
+.setup-hero p{font-size:15px;opacity:.9}
+.setup-form{
+  background:#f0f4f8;flex:1;
+  padding:28px 16px 60px;
+  width:100%;
+}
+.form-group{margin-bottom:20px}
+.form-label{display:block;font-size:14px;font-weight:700;color:#4a5568;margin-bottom:8px}
+.form-input{
+  display:block;width:100%;
+  border:2px solid #e2e8f0;border-radius:12px;
+  padding:16px;font-size:16px;
+  color:#2d3748;background:#fff;
+  transition:border-color .2s;
+}
+.form-input:focus{border-color:#2b6cb0}
+
+/* ===== ボタン ===== */
+.btn{
+  display:block;width:100%;
+  padding:18px 16px;border-radius:14px;
+  font-size:17px;font-weight:700;text-align:center;
+  transition:opacity .15s,transform .1s;
+  min-height:56px;line-height:1.3;
+}
+.btn-primary{background:linear-gradient(135deg,#2b6cb0,#1a365d);color:#fff}
+.btn-primary:active{opacity:.85;transform:scale(.98)}
+.btn-secondary{background:#edf2f7;color:#4a5568}
+.btn-secondary:active{background:#e2e8f0}
+.btn-sm{
+  padding:12px 18px;font-size:14px;border-radius:10px;
+  font-weight:600;display:inline-block;width:auto;min-height:46px;
+}
+.btn-gold{background:linear-gradient(135deg,#d69e2e,#b7791f);color:#fff}
+
+/* ===== プログレスバー ===== */
+.progress-bar-wrap{background:#e2e8f0;border-radius:99px;height:7px;margin:10px 0 18px}
+.progress-bar{background:linear-gradient(90deg,#2b6cb0,#63b3ed);height:7px;border-radius:99px;transition:width .4s ease}
+
+/* ===== 問題・選択肢 ===== */
+.question-num{font-size:14px;color:#718096;margin-bottom:8px}
+.question-text{
+  font-size:17px;font-weight:600;line-height:1.8;
+  color:#2d3748;margin-bottom:22px;white-space:pre-wrap;
+  word-break:break-all;
+}
+.choices{display:flex;flex-direction:column;gap:12px}
+.choice-btn{
+  background:#f7fafc;border:2px solid #e2e8f0;
+  border-radius:14px;padding:18px 16px;
+  font-size:16px;text-align:left;
+  min-height:60px;line-height:1.5;
+  width:100%;display:block;word-break:break-all;
+  transition:border-color .15s,background .15s;
+}
+.choice-btn:active{border-color:#2b6cb0;background:#ebf8ff}
+.choice-btn.correct{border-color:#38a169;background:#f0fff4;color:#276749}
+.choice-btn.wrong{border-color:#e53e3e;background:#fff5f5;color:#9b2c2c}
+.choice-btn.disabled{pointer-events:none}
+
+/* ===== バッジ ===== */
+.level-badge{display:inline-block;padding:8px 24px;border-radius:99px;font-weight:800;font-size:16px}
+.level-初級{background:#fefcbf;color:#744210}
+.level-中級{background:#bee3f8;color:#1a365d}
+.level-上級{background:#c6f6d5;color:#22543d}
+
+/* ===== ダッシュボード ===== */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat-box{background:#fff;border-radius:14px;padding:16px 6px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,.07)}
+.stat-num{font-size:26px;font-weight:800;color:#2b6cb0}
+.stat-label{font-size:12px;color:#718096;margin-top:4px}
+.field-tag{display:inline-block;padding:4px 12px;border-radius:4px;font-size:13px;font-weight:700}
+.tag-宅建業法{background:#ebf8ff;color:#2c5282}
+.tag-権利関係{background:#fef9c3;color:#713f12}
+.tag-法令上の制限{background:#f0fdf4;color:#14532d}
+.tag-税・その他{background:#fdf4ff;color:#581c87}
+.schedule-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #f0f4f8}
+.schedule-week{background:#2b6cb0;color:#fff;border-radius:6px;padding:4px 8px;font-size:12px;font-weight:700;min-width:44px;text-align:center;flex-shrink:0}
+.schedule-date{font-size:12px;color:#718096;min-width:44px;flex-shrink:0}
+.schedule-field{font-size:14px;font-weight:600}
+
+/* ===== メニューグリッド ===== */
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px}
+.menu-card{
+  background:#fff;border-radius:16px;padding:22px 12px;
+  text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.07);
+  cursor:pointer;min-height:110px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;
+}
+.menu-card:active{transform:scale(.96);opacity:.9}
+.menu-icon{font-size:34px;margin-bottom:10px}
+.menu-title{font-size:14px;font-weight:700;color:#2d3748}
+.menu-sub{font-size:11px;color:#718096;margin-top:4px}
+
+/* ===== 演習選択 ===== */
+.field-list{display:flex;flex-direction:column;gap:10px}
+.field-item{
+  background:#fff;border:2px solid #e2e8f0;border-radius:14px;
+  padding:18px 16px;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;
+  min-height:66px;width:100%;
+  transition:border-color .15s,background .15s;
+}
+.field-item.selected{border-color:#2b6cb0;background:#ebf8ff}
+.field-item:active{border-color:#2b6cb0;background:#ebf8ff}
+.field-item-title{font-size:16px;font-weight:600}
+.field-item-sub{font-size:13px;color:#718096;margin-top:4px}
+.unit-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.unit-item{
+  background:#f7fafc;border:2px solid #e2e8f0;border-radius:12px;
+  padding:16px;cursor:pointer;
+  font-size:15px;font-weight:500;
+  display:flex;justify-content:space-between;align-items:center;
+  min-height:56px;width:100%;
+  transition:all .15s;
+}
+.unit-item.selected{border-color:#2b6cb0;background:#ebf8ff}
+.unit-item:active{border-color:#2b6cb0;background:#ebf8ff}
+
+/* ===== 問題画面メタ ===== */
+.q-meta{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.q-tag{font-size:13px;padding:4px 12px;border-radius:4px;font-weight:600}
+
+/* ===== 解説 ===== */
+.explanation-box{
+  background:#f8f9fa;border-left:4px solid #2b6cb0;
+  border-radius:0 10px 10px 0;padding:16px;margin-top:10px;
+  font-size:15px;line-height:1.9;white-space:pre-wrap;word-break:break-all;
+}
+.answer-result{text-align:center;padding:20px;border-radius:14px;margin-bottom:14px}
+.answer-result.correct{background:#f0fff4;border:2px solid #38a169}
+.answer-result.wrong{background:#fff5f5;border:2px solid #e53e3e}
+.result-emoji{font-size:44px;line-height:1}
+.result-text{font-size:20px;font-weight:800;margin-top:8px}
+
+/* ===== 進捗 ===== */
+.rate-bar-wrap{background:#e2e8f0;border-radius:99px;height:8px;flex:1;min-width:0}
+.rate-bar{height:8px;border-radius:99px;background:linear-gradient(90deg,#38a169,#68d391);transition:width .6s ease}
+.unit-row{display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid #f0f4f8;font-size:14px}
+.unit-name{min-width:80px;max-width:130px;color:#4a5568;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rate-label{min-width:44px;text-align:right;font-weight:700;color:#2b6cb0;flex-shrink:0}
+
+/* ===== 下固定バー ===== */
+.bottom-action{
+  position:fixed;bottom:0;left:0;right:0;
+  padding:12px 16px;
+  padding-bottom:calc(12px + env(safe-area-inset-bottom));
+  background:#fff;box-shadow:0 -2px 16px rgba(0,0,0,.12);
+  z-index:9;display:none;
+}
+.bottom-action.show{display:block}
+.bottom-action .btn{margin:0}
+
+/* ===== トースト ===== */
+.toast{
+  position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));
+  left:16px;right:16px;
+  background:#2d3748;color:#fff;
+  padding:14px 20px;border-radius:12px;
+  font-size:15px;opacity:0;pointer-events:none;
+  transition:opacity .3s;z-index:999;text-align:center;
+}
+.toast.show{opacity:1}
+
+/* ===== ローディング ===== */
+.loading-overlay{
+  position:fixed;inset:0;
+  background:rgba(255,255,255,.9);
+  display:none;flex-direction:column;
+  align-items:center;justify-content:center;z-index:100;
+}
+.loading-overlay.show{display:flex}
+.spinner{
+  width:40px;height:40px;
+  border:3px solid #e2e8f0;border-top-color:#2b6cb0;
+  border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:15px;color:#4a5568}
+
+/* ===== 結果ヒーロー ===== */
+.result-hero{background:linear-gradient(135deg,#1a365d,#2b6cb0);color:#fff;text-align:center;padding:40px 20px}
+.score-circle{
+  width:100px;height:100px;border-radius:50%;
+  background:rgba(255,255,255,.15);border:3px solid rgba(255,255,255,.4);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  margin:0 auto 16px;
+}
+.score-num{font-size:34px;font-weight:800}
+.score-denom{font-size:14px;opacity:.8}
+</style>
+</head>
+<body>
+
+<!-- ローディングオーバーレイ -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">読み込み中...</div>
+</div>
+
+<!-- トースト通知 -->
+<div class="toast" id="toast"></div>
+
+<!-- ====================================================
+     SCREEN 1: セットアップ
+==================================================== -->
+<div class="screen active" id="screen-setup">
+  <div class="setup-hero">
+    <div style="font-size:48px;margin-bottom:12px">🏠</div>
+    <h2>宅建合格アプリ</h2>
+    <p>AIが最短合格をサポートします</p>
+  </div>
+  <div class="setup-form">
+    <div class="form-group">
+      <label class="form-label">お名前</label>
+      <input type="text" id="input-name" class="form-input" placeholder="山田 太郎" maxlength="20">
+    </div>
+    <div class="form-group">
+      <label class="form-label">受験予定年</label>
+      <select id="input-year" class="form-input">
+        <option value="2025">2025年</option>
+        <option value="2026" selected>2026年</option>
+        <option value="2027">2027年</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="startDiagnosis()">レベル診断をはじめる →</button>
+    <p style="text-align:center;font-size:12px;color:#a0aec0;margin-top:16px">初回は10問の診断テストを行います</p>
+  </div>
+</div>
+
+<!-- ====================================================
+     SCREEN 2: レベル診断
+==================================================== -->
+<div class="screen" id="screen-diagnosis">
+  <div class="header">
+    <div>
+      <div class="sub">レベル診断</div>
+      <h1>実力チェック</h1>
+    </div>
+  </div>
+  <div class="container" style="padding-top:16px">
+    <div class="card">
+      <div class="question-num" id="diag-num">問題 1 / 10</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="diag-progress" style="width:10%"></div>
+      </div>
+      <div class="question-text" id="diag-question">問題文がここに入ります</div>
+      <div class="choices" id="diag-choices"></div>
+    </div>
+    <div id="diag-next-wrap" style="display:none">
+      <button class="btn btn-primary" onclick="nextDiagQuestion()">次の問題 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================
+     SCREEN 3: 診断結果
+==================================================== -->
+<div class="screen" id="screen-result">
+  <div class="result-hero">
+    <div class="score-circle">
+      <span class="score-num" id="result-score">0</span>
+      <span class="score-denom">/ 10</span>
+    </div>
+    <div style="font-size:22px;font-weight:800;margin-bottom:6px">診断完了！</div>
+    <div style="font-size:14px;opacity:.85">あなたのレベルは...</div>
+  </div>
+  <div class="container" style="padding-top:20px">
+    <div class="card" style="text-align:center">
+      <div style="margin-bottom:12px">
+        <span class="level-badge" id="result-level-badge">初級</span>
+      </div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px" id="result-level-name"></div>
+      <div style="font-size:13px;color:#718096;line-height:1.7" id="result-level-desc"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">分野別スコア</div>
+      <div id="result-field-breakdown"></div>
+    </div>
+    <button class="btn btn-primary" onclick="goToDashboard()" style="margin-top:8px">
+      ダッシュボードへ →
+    </button>
+  </div>
+</div>
+
+<!-- ====================================================
+     SCREEN 4: ダッシュボード
+==================================================== -->
+<div class="screen" id="screen-dashboard">
+  <div class="header">
+    <div>
+      <div class="sub" id="dash-username">ようこそ</div>
+      <h1>ダッシュボード</h1>
+    </div>
+  </div>
+  <div class="container" style="padding-top:16px">
+    <!-- 今週の予定 -->
+    <div class="card">
+      <div class="card-title">今週の学習予定</div>
+      <div id="dash-current-week" style="font-size:14px;margin-bottom:8px"></div>
+      <div id="dash-exam-info" style="font-size:12px;color:#718096"></div>
+    </div>
+    <!-- 統計 -->
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-num" id="stat-total">0</div>
+        <div class="stat-label">解いた問題</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-rate">-</div>
+        <div class="stat-label">正答率</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-level">-</div>
+        <div class="stat-label">レベル</div>
+      </div>
+    </div>
+    <!-- メニュー -->
+    <div class="menu-grid">
+      <div class="menu-card" onclick="showExerciseSelect()">
+        <div class="menu-icon">📝</div>
+        <div class="menu-title">問題演習</div>
+        <div class="menu-sub">分野・単元を選んで演習</div>
+      </div>
+      <div class="menu-card" onclick="showScreen('screen-progress')">
+        <div class="menu-icon">📊</div>
+        <div class="menu-title">進捗確認</div>
+        <div class="menu-sub">正答率・弱点を確認</div>
+      </div>
+      <div class="menu-card" onclick="showScreen('screen-schedule')">
+        <div class="menu-icon">📅</div>
+        <div class="menu-title">学習スケジュール</div>
+        <div class="menu-sub">8週先まで表示</div>
+      </div>
+      <div class="menu-card" onclick="resetUser()">
+        <div class="menu-icon">🔄</div>
+        <div class="menu-title">レベル再診断</div>
+        <div class="menu-sub">レベルを再設定する</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================
+     SCREEN 5: 問題演習 選択
+==================================================== -->
+<div class="screen" id="screen-exercise">
+  <div class="header">
+    <button class="back-btn" onclick="showScreen('screen-dashboard')">← 戻る</button>
+    <div>
+      <div class="sub">問題演習</div>
+      <h1>分野を選択</h1>
+    </div>
+  </div>
+  <div class="container" style="padding-top:16px">
+    <div class="card">
+      <div class="card-title">大分野</div>
+      <div class="field-list">
+        <div class="field-item" onclick="selectField('all')" data-field="all">
+          <div>
+            <div class="field-item-title">🎯 全分野ランダム</div>
+            <div class="field-item-sub">バランスよく演習</div>
+          </div>
+          <span>→</span>
+        </div>
+        <div class="field-item" onclick="selectField('宅建業法')" data-field="宅建業法">
+          <div>
+            <div class="field-item-title"><span class="field-tag tag-宅建業法">宅建業法</span></div>
+            <div class="field-item-sub">出題数最多・最優先</div>
+          </div>
+          <span>→</span>
+        </div>
+        <div class="field-item" onclick="selectField('権利関係')" data-field="権利関係">
+          <div>
+            <div class="field-item-title"><span class="field-tag tag-権利関係">権利関係</span></div>
+            <div class="field-item-sub">民法・借地借家法など</div>
+          </div>
+          <span>→</span>
+        </div>
+        <div class="field-item" onclick="selectField('法令上の制限')" data-field="法令上の制限">
+          <div>
+            <div class="field-item-title"><span class="field-tag tag-法令上の制限">法令上の制限</span></div>
+            <div class="field-item-sub">都市計画法・建築基準法など</div>
+          </div>
+          <span>→</span>
+        </div>
+        <div class="field-item" onclick="selectField('税・その他')" data-field="税・その他">
+          <div>
+            <div class="field-item-title"><span class="field-tag tag-税・その他">税・その他</span></div>
+            <div class="field-item-sub">不動産取得税・固定資産税など</div>
+          </div>
+          <span>→</span>
+        </div>
+      </div>
+    </div>
+    <!-- 小単元選択（フィールド選択後に表示） -->
+    <div class="card" id="unit-card" style="display:none">
+      <div class="card-title">小単元（任意）</div>
+      <div class="unit-list" id="unit-list"></div>
+    </div>
+    <div id="start-btn-wrap" style="display:none;margin-top:8px">
+      <button class="btn btn-primary" onclick="startExercise()">演習スタート（10問）→</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================
+     SCREEN 6: 問題演習 問題
+==================================================== -->
+<div class="screen" id="screen-question">
+  <div class="header">
+    <button class="back-btn" onclick="confirmExitExercise()">← 終了</button>
+    <div>
+      <div class="sub" id="ex-progress-label">1 / 10</div>
+      <h1>問題演習</h1>
+    </div>
+  </div>
+  <div class="container" style="padding-top:16px">
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="ex-progress" style="width:10%"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="q-meta" id="ex-meta"></div>
+      <div class="question-text" id="ex-question"></div>
+      <div class="choices" id="ex-choices"></div>
+    </div>
+    <!-- 答え合わせ後 -->
+    <div id="ex-after" style="display:none">
+      <div class="answer-result" id="ex-result-box">
+        <div class="result-emoji" id="ex-result-emoji"></div>
+        <div class="result-text" id="ex-result-text"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">解説</div>
+        <div class="explanation-box" id="ex-explanation"></div>
+        <button class="btn" id="ai-explain-btn" onclick="loadAiExplanation()"
+          style="margin-top:10px;background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;font-size:13px;min-height:40px">
+          🤖 AIにもっと詳しく解説してもらう
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 下固定アクションバー（次へ／結果へ） -->
+<div class="bottom-action" id="bottom-next">
+  <button class="btn btn-primary" onclick="nextExQuestion()" id="ex-next-btn">次の問題 →</button>
+</div>
+
+<!-- ====================================================
+     SCREEN 7: 演習結果
+==================================================== -->
+<div class="screen" id="screen-ex-result">
+  <div class="result-hero">
+    <div class="score-circle">
+      <span class="score-num" id="ex-score-num">0</span>
+      <span class="score-denom">/ <span id="ex-score-denom">10</span></span>
+    </div>
+    <div style="font-size:22px;font-weight:800;margin-bottom:6px">演習完了！</div>
+    <div style="font-size:14px;opacity:.85" id="ex-score-msg"></div>
+  </div>
+  <div class="container" style="padding-top:20px">
+    <div class="card" id="ex-result-detail"></div>
+    <button class="btn btn-primary" onclick="showScreen('screen-dashboard')" style="margin-top:8px">
+      ダッシュボードに戻る
+    </button>
+    <button class="btn btn-secondary" onclick="showExerciseSelect()" style="margin-top:8px">
+      もう一度演習する
+    </button>
+  </div>
+</div>
+
+<!-- ====================================================
+     SCREEN 8: 進捗確認
+==================================================== -->
+<div class="screen" id="screen-progress">
+  <div class="header">
+    <button class="back-btn" onclick="showScreen('screen-dashboard')">← 戻る</button>
+    <div>
+      <div class="sub">学習記録</div>
+      <h1>進捗確認</h1>
+    </div>
+  </div>
+  <div class="container" style="padding-top:16px">
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-num" id="prog-total">0</div>
+        <div class="stat-label">解いた問題</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="prog-rate">-</div>
+        <div class="stat-label">総合正答率</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="prog-ok">0</div>
+        <div class="stat-label">正解数</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">大分野別正答率</div>
+      <div id="prog-field-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">小単元別正答率（上位10件）</div>
+      <div id="prog-unit-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================
+     SCREEN 9: スケジュール
+==================================================== -->
+<div class="screen" id="screen-schedule">
+  <div class="header">
+    <button class="back-btn" onclick="showScreen('screen-dashboard')">← 戻る</button>
+    <div>
+      <div class="sub">今後の学習計画</div>
+      <h1>学習スケジュール</h1>
+    </div>
+  </div>
+  <div class="container" style="padding-top:16px">
+    <div class="card">
+      <div class="card-title">試験情報</div>
+      <div id="sched-exam-info" style="font-size:14px;line-height:1.8"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">8週間プラン</div>
+      <div id="sched-list"></div>
+    </div>
+    <div class="card" style="background:#fffaf0;border:1px solid #f6ad55">
+      <div style="font-size:13px;color:#744210;line-height:1.7">
+        💡 <strong>宅建業法を最優先</strong>で学習します。<br>
+        宅建業法は例年 <strong>20問出題</strong>（全50問中）の最重要分野です。<br>
+        スケジュールは進捗に合わせて自動調整されます。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// GAS API エンドポイント
+// ============================================================
+const GAS_URL = 'https://script.google.com/macros/s/【デプロイ後のIDに差し替える】/exec';
+
+// 結果が不要な呼び出し（saveUser, saveRecord など）
+function gasPostFireAndForget(action, params) {
+  fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    body: JSON.stringify({ action, ...params })
+  }).catch(() => {});
+}
+
+// 結果が必要な呼び出し（getAllQuestions, getProgress など）JSONP方式
+function gasGet(action, params) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const query = new URLSearchParams({ action, callback: cbName, ...params }).toString();
+    const script = document.createElement('script');
+
+    window[cbName] = function(data) {
+      delete window[cbName];
+      if (document.body.contains(script)) document.body.removeChild(script);
+      if (data && data.error) reject(new Error(data.error));
+      else resolve(data);
+    };
+
+    script.onerror = function() {
+      delete window[cbName];
+      if (document.body.contains(script)) document.body.removeChild(script);
+      reject(new Error('Network error'));
+    };
+
+    script.src = GAS_URL + '?' + query;
+    document.body.appendChild(script);
+  });
+}
+
+// ============================================================
+// アプリ状態
+// ============================================================
+const App = {
+  name: '',
+  year: 2026,
+  level: '',
+  // 診断
+  diagQuestions: [],
+  diagIndex: 0,
+  diagScore: 0,
+  diagFieldScore: { '権利関係':0, '宅建業法':0, '法令上の制限':0, '税・その他':0 },
+  diagFieldTotal: { '権利関係':0, '宅建業法':0, '法令上の制限':0, '税・その他':0 },
+  // 演習
+  exQuestions: [],
+  exIndex: 0,
+  exScore: 0,
+  exField: 'all',
+  exUnit: 'all',
+};
+
+// ============================================================
+// 診断用問題（フロントに組み込み・速度優先）
+// ============================================================
+const DIAG_QUESTIONS = [
+  {
+    field:'宅建業法', unit:'免許',
+    question:'宅地建物取引業を営もうとする者が2以上の都道府県に事務所を設置する場合は、国土交通大臣の免許を受けなければならない。',
+    choices:['○（正しい）','×（誤り）','都道府県知事免許で可','免許は不要'],
+    answer: 0,
+    hint:'複数都道府県→大臣免許、1都道府県のみ→知事免許（宅建業法3条）'
+  },
+  {
+    field:'権利関係', unit:'代理',
+    question:'AがBに代理権を授与し、BがAのためにすることを示さずにCと契約したとき、原則としてその契約はBとCの間で効力が生じる。',
+    choices:['○（正しい）','×（誤り）','AとCの間で効力が生じる','当然に無効'],
+    answer: 0,
+    hint:'顕名なし→代理人と相手方間で効力（民法100条）'
+  },
+  {
+    field:'法令上の制限', unit:'都市計画法',
+    question:'市街化調整区域は、市街化を抑制すべき区域である。',
+    choices:['○（正しい）','×（誤り）','市街化を促進する区域','農業専用地域'],
+    answer: 0,
+    hint:'都市計画法7条：市街化区域=市街化推進、調整区域=市街化抑制'
+  },
+  {
+    field:'宅建業法', unit:'重要事項説明',
+    question:'宅建業者が重要事項説明（35条書面）を行う際、宅地建物取引士は買主から請求がなくても取引士証を提示しなければならない。',
+    choices:['○（正しい）','×（誤り）','請求があった場合のみ提示','提示義務はない'],
+    answer: 0,
+    hint:'宅建業法35条4項：取引士証の提示義務あり（請求不要）'
+  },
+  {
+    field:'権利関係', unit:'抵当権',
+    question:'抵当権者は、債務不履行後に抵当不動産から生じた果実にも、その抵当権の効力を及ぼすことができる。',
+    choices:['○（正しい）','×（誤り）','果実には一切及ばない','登記がある場合のみ及ぶ'],
+    answer: 0,
+    hint:'民法371条：債務不履行後の果実には抵当権の効力が及ぶ'
+  },
+  {
+    field:'法令上の制限', unit:'農地法',
+    question:'市街化区域内の農地を農地以外に転用する場合、農地法4条の許可は不要で農業委員会への届出で足りる。',
+    choices:['○（正しい）','×（誤り）','許可が必要','届出も不要'],
+    answer: 0,
+    hint:'農地法4条：市街化区域内は届出で可（例外規定）'
+  },
+  {
+    field:'宅建業法', unit:'媒介契約',
+    question:'専任媒介契約の有効期間は最長3か月で、依頼者の申出によらない自動更新の特約は無効である。',
+    choices:['○（正しい）','×（誤り）','最長6か月','自動更新は有効'],
+    answer: 0,
+    hint:'宅建業法34条の2：専任・専属専任媒介は3か月以内、更新は依頼者申出のみ'
+  },
+  {
+    field:'税・その他', unit:'不動産取得税',
+    question:'相続により不動産を取得した場合は、不動産取得税は課税されない。',
+    choices:['○（正しい）','×（誤り）','相続にも課税される','軽減税率が適用'],
+    answer: 0,
+    hint:'地方税法73条の7：相続・法人合併等は非課税'
+  },
+  {
+    field:'権利関係', unit:'制限行為能力者',
+    question:'成年後見人が成年被後見人に代わって居住用不動産を売却するには、家庭裁判所の許可が必要である。',
+    choices:['○（正しい）','×（誤り）','後見監督人の同意で可','許可は不要'],
+    answer: 0,
+    hint:'民法859条の3：居住用不動産の処分は家庭裁判所の許可が必要'
+  },
+  {
+    field:'宅建業法', unit:'クーリングオフ',
+    question:'宅建業者が自ら売主となる売買で、買主が事務所以外の喫茶店で申込みをした場合、買主はクーリングオフによる解除ができる。',
+    choices:['○（正しい）','×（誤り）','喫茶店ではクーリングオフ不可','解除には理由が必要'],
+    answer: 0,
+    hint:'宅建業法37条の2：事務所等以外の場所での申込みはクーリングオフ可。喫茶店は「等」に含まれない'
+  }
+];
+
+// ============================================================
+// 画面制御
+// ============================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function showLoading(msg) {
+  document.getElementById('loading-text').textContent = msg || '処理中...';
+  document.getElementById('loading').classList.add('show');
+}
+
+function hideLoading() {
+  document.getElementById('loading').classList.remove('show');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// SCREEN 1: セットアップ
+// ============================================================
+function startDiagnosis() {
+  const name = document.getElementById('input-name').value.trim();
+  const year = document.getElementById('input-year').value;
+  if (!name) { showToast('お名前を入力してください'); return; }
+  App.name = name;
+  App.year = Number(year);
+  // 初期化
+  App.diagIndex = 0;
+  App.diagScore = 0;
+  App.diagFieldScore = { '権利関係':0,'宅建業法':0,'法令上の制限':0,'税・その他':0 };
+  App.diagFieldTotal = { '権利関係':0,'宅建業法':0,'法令上の制限':0,'税・その他':0 };
+  showScreen('screen-diagnosis');
+  renderDiagQuestion();
+}
+
+// ============================================================
+// SCREEN 2: 診断
+// ============================================================
+function renderDiagQuestion() {
+  const q = DIAG_QUESTIONS[App.diagIndex];
+  const total = DIAG_QUESTIONS.length;
+  document.getElementById('diag-num').textContent = `問題 ${App.diagIndex + 1} / ${total}`;
+  document.getElementById('diag-progress').style.width = `${(App.diagIndex + 1) / total * 100}%`;
+  document.getElementById('diag-question').textContent = q.question;
+  document.getElementById('diag-next-wrap').style.display = 'none';
+
+  const choicesEl = document.getElementById('diag-choices');
+  choicesEl.innerHTML = '';
+  q.choices.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = c;
+    btn.onclick = () => answerDiag(i);
+    choicesEl.appendChild(btn);
+  });
+}
+
+function answerDiag(selectedIndex) {
+  const q = DIAG_QUESTIONS[App.diagIndex];
+  const btns = document.querySelectorAll('#diag-choices .choice-btn');
+  btns.forEach((btn, i) => {
+    btn.classList.add('disabled');
+    if (i === q.answer)  btn.classList.add('correct');
+    if (i === selectedIndex && i !== q.answer) btn.classList.add('wrong');
+  });
+
+  // 分野別集計
+  App.diagFieldTotal[q.field] = (App.diagFieldTotal[q.field] || 0) + 1;
+  if (selectedIndex === q.answer) {
+    App.diagScore++;
+    App.diagFieldScore[q.field] = (App.diagFieldScore[q.field] || 0) + 1;
+  }
+
+  // ヒント表示
+  const hint = document.createElement('div');
+  hint.style.cssText = 'margin-top:12px;padding:10px 12px;background:#ebf8ff;border-radius:8px;font-size:12px;color:#2c5282;line-height:1.6';
+  hint.textContent = '💡 ' + q.hint;
+  document.getElementById('diag-choices').appendChild(hint);
+
+  if (App.diagIndex < DIAG_QUESTIONS.length - 1) {
+    document.getElementById('diag-next-wrap').style.display = 'block';
+  } else {
+    document.getElementById('diag-next-wrap').innerHTML =
+      '<button class="btn btn-gold" onclick="finishDiagnosis()">結果を見る →</button>';
+    document.getElementById('diag-next-wrap').style.display = 'block';
+  }
+}
+
+function nextDiagQuestion() {
+  App.diagIndex++;
+  renderDiagQuestion();
+}
+
+function finishDiagnosis() {
+  const score = App.diagScore;
+  let level;
+  if (score <= 3)      level = '初級';
+  else if (score <= 7) level = '中級';
+  else                 level = '上級';
+  App.level = level;
+
+  // 結果画面
+  document.getElementById('result-score').textContent = score;
+  const badge = document.getElementById('result-level-badge');
+  badge.textContent = level;
+  badge.className = `level-badge level-${level}`;
+
+  const levelInfo = {
+    '初級': { name:'初級（ビギナー）', desc:'宅建の基礎から着実に学習を進めましょう。\n重要単語の暗記から始めて、宅建業法を最優先に！' },
+    '中級': { name:'中級（ステップアップ）', desc:'基本的な知識はあります。\n苦手分野を集中的に強化して合格圏内を目指しましょう！' },
+    '上級': { name:'上級（合格圏内）', desc:'かなりの知識があります！\n細かい論点や過去問演習を重ねて確実に合格を狙いましょう。' }
+  };
+  document.getElementById('result-level-name').textContent = levelInfo[level].name;
+  document.getElementById('result-level-desc').textContent = levelInfo[level].desc;
+
+  // 分野別内訳
+  const breakdown = document.getElementById('result-field-breakdown');
+  breakdown.innerHTML = '';
+  Object.keys(App.diagFieldTotal).forEach(f => {
+    const total = App.diagFieldTotal[f] || 0;
+    const ok = App.diagFieldScore[f] || 0;
+    if (total === 0) return;
+    const rate = Math.round(ok / total * 100);
+    breakdown.innerHTML += `
+      <div class="unit-row">
+        <span class="unit-name">${f}</span>
+        <div class="rate-bar-wrap"><div class="rate-bar" style="width:${rate}%"></div></div>
+        <span class="rate-label">${ok}/${total}</span>
+      </div>`;
+  });
+
+  showScreen('screen-result');
+
+  // GASにユーザー保存（fire-and-forget）
+  gasPostFireAndForget('saveUser', { name: App.name, examYear: App.year, level: App.level });
+}
+
+// ============================================================
+// SCREEN 4: ダッシュボード
+// ============================================================
+function goToDashboard() {
+  showScreen('screen-dashboard');
+  loadDashboard();
+}
+
+function loadDashboard() {
+  document.getElementById('dash-username').textContent = `${App.name} さん（${App.level}）`;
+  document.getElementById('stat-level').textContent = App.level;
+
+  // 進捗ロード
+  showLoading('データを読み込み中...');
+  gasGet('getProgress', { name: App.name })
+    .then(prog => {
+      hideLoading();
+      document.getElementById('stat-total').textContent = prog.total;
+      document.getElementById('stat-rate').textContent = prog.total > 0 ? `${prog.rate}%` : '-';
+    })
+    .catch(() => hideLoading());
+
+  // スケジュールサマリー
+  gasGet('generateSchedule', { examYear: App.year })
+    .then(sched => {
+      if (!sched) return;
+      const thisWeek = sched.schedule[0];
+      if (thisWeek) {
+        document.getElementById('dash-current-week').innerHTML =
+          `今週：<strong>${thisWeek.field}</strong>（${thisWeek.startDate}〜）`;
+      }
+      document.getElementById('dash-exam-info').textContent =
+        `試験日：${sched.examDate}（残り約${sched.weeksLeft}週）`;
+    })
+    .catch(() => {});
+}
+
+// ============================================================
+// SCREEN 5: 演習選択
+// ============================================================
+function showExerciseSelect() {
+  App.exField = 'all';
+  App.exUnit = 'all';
+  document.getElementById('unit-card').style.display = 'none';
+  document.getElementById('start-btn-wrap').style.display = 'none';
+  document.querySelectorAll('.field-item').forEach(el => el.classList.remove('selected'));
+  showScreen('screen-exercise');
+}
+
+function _renderUnitList(field, units) {
+  const unitList = document.getElementById('unit-list');
+  unitList.innerHTML = `<div class="unit-item selected" onclick="selectUnit('all')" data-unit="all">
+    <span>🎯 ${field} 全体からランダム</span><span>→</span></div>`;
+  units.forEach(u => {
+    unitList.innerHTML += `<div class="unit-item" onclick="selectUnit('${u}')" data-unit="${u}">
+      <span>${u}</span><span>→</span></div>`;
+  });
+  document.getElementById('unit-card').style.display = 'block';
+  document.getElementById('start-btn-wrap').style.display = 'block';
+}
+
+function selectField(field) {
+  App.exField = field;
+  App.exUnit = 'all';
+  document.querySelectorAll('.field-item').forEach(el => el.classList.remove('selected'));
+  document.querySelector(`[data-field="${field}"]`).classList.add('selected');
+
+  if (field === 'all') {
+    document.getElementById('unit-card').style.display = 'none';
+    document.getElementById('start-btn-wrap').style.display = 'block';
+    return;
+  }
+
+  // キャッシュがあればクライアント側で単元リストを即時生成
+  const cached = _loadCache();
+  if (cached) {
+    const units = [...new Set(
+      cached.filter(q => q.field === field).map(q => q.unit)
+    )].sort();
+    _renderUnitList(field, units);
+    return;
+  }
+
+  // キャッシュなし → GASから取得
+  showLoading('単元リストを取得中...');
+  gasGet('getUnitList', { field })
+    .then(units => { hideLoading(); _renderUnitList(field, units); })
+    .catch(() => { hideLoading(); document.getElementById('start-btn-wrap').style.display = 'block'; });
+}
+
+function selectUnit(unit) {
+  App.exUnit = unit;
+  document.querySelectorAll('.unit-item').forEach(el => el.classList.remove('selected'));
+  document.querySelector(`[data-unit="${unit}"]`).classList.add('selected');
+}
+
+// ============================================================
+// 問題キャッシュ（localStorage）
+// ============================================================
+const CACHE_KEY = 'takken_questions_v4';
+const CACHE_TTL = 30 * 24 * 60 * 60 * 1000; // 30日
+
+function _saveCache(questions) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: questions }));
+  } catch(e) { /* ストレージ満杯時は無視 */ }
+}
+
+function _loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (Date.now() - obj.ts > CACHE_TTL) return null;
+    return obj.data;
+  } catch(e) { return null; }
+}
+
+function _filterQuestions(all, field, unit, count) {
+  let pool = all.filter(q =>
+    (field === 'all' || q.field === field) &&
+    (unit  === 'all' || q.unit  === unit)
+  );
+  // シャッフル
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, count || pool.length);
+}
+
+// 起動時にバックグラウンドで全問題をキャッシュ
+function _warmupCache() {
+  if (_loadCache()) return; // 既にキャッシュあり
+  gasGet('getAllQuestions', {})
+    .then(all => { if (all && all.length) _saveCache(all); })
+    .catch(() => {});
+}
+
+// ============================================================
+// SCREEN 6: 演習問題
+// ============================================================
+function startExercise() {
+  const cached = _loadCache();
+  if (cached) {
+    // キャッシュから即時取得
+    const questions = _filterQuestions(cached, App.exField, App.exUnit, 10);
+    if (!questions || questions.length === 0) {
+      showToast('問題が見つかりませんでした');
+      return;
+    }
+    App.exQuestions = questions;
+    App.exIndex = 0;
+    App.exScore = 0;
+    showScreen('screen-question');
+    renderExQuestion();
+    return;
+  }
+
+  // キャッシュなし → 全問取得してキャッシュ保存後に出題
+  showLoading('問題を取得中...');
+  gasGet('getAllQuestions', {})
+    .then(all => {
+      hideLoading();
+      if (!all || all.length === 0) { showToast('問題が見つかりませんでした'); return; }
+      _saveCache(all);
+      const questions = _filterQuestions(all, App.exField, App.exUnit, 10);
+      if (!questions || questions.length === 0) { showToast('問題が見つかりませんでした'); return; }
+      App.exQuestions = questions;
+      App.exIndex = 0;
+      App.exScore = 0;
+      showScreen('screen-question');
+      renderExQuestion();
+    })
+    .catch(() => { hideLoading(); showToast('問題の取得に失敗しました'); });
+}
+
+function renderExQuestion() {
+  const q = App.exQuestions[App.exIndex];
+  const total = App.exQuestions.length;
+
+  document.getElementById('ex-progress-label').textContent = `${App.exIndex + 1} / ${total}`;
+  document.getElementById('ex-progress').style.width = `${(App.exIndex + 1) / total * 100}%`;
+  document.getElementById('ex-after').style.display = 'none';
+  document.getElementById('bottom-next').classList.remove('show');
+
+  // タグ
+  document.getElementById('ex-meta').innerHTML = `
+    <span class="q-tag field-tag tag-${q.field}">${q.field}</span>
+    <span class="q-tag" style="background:#f7fafc;color:#4a5568">${q.unit}</span>
+    <span class="q-tag" style="background:#fef9c3;color:#744210">難易度 ${'⭐'.repeat(q.difficulty || 3)}</span>`;
+
+  // \n を <br> に変換して複数記述型の改行を保持
+  document.getElementById('ex-question').innerHTML =
+    q.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+
+  const choicesEl = document.getElementById('ex-choices');
+  choicesEl.innerHTML = '';
+  q.choices.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = c;
+    btn.onclick = () => answerEx(i);
+    choicesEl.appendChild(btn);
+  });
+}
+
+function answerEx(selectedIndex) {
+  const q = App.exQuestions[App.exIndex];
+  const isCorrect = selectedIndex === q.answer;
+
+  // 選択肢の見た目を変更
+  const btns = document.querySelectorAll('#ex-choices .choice-btn');
+  btns.forEach((btn, i) => {
+    btn.classList.add('disabled');
+    if (i === q.answer) btn.classList.add('correct');
+    if (i === selectedIndex && !isCorrect) btn.classList.add('wrong');
+  });
+
+  if (isCorrect) App.exScore++;
+  App._lastAnswer = selectedIndex;
+
+  // 結果ボックス
+  const box = document.getElementById('ex-result-box');
+  box.className = `answer-result ${isCorrect ? 'correct' : 'wrong'}`;
+  document.getElementById('ex-result-emoji').textContent = isCorrect ? '✅' : '❌';
+  document.getElementById('ex-result-text').textContent = isCorrect ? '正解！' : `不正解（正解：${q.answer + 1}番）`;
+
+  document.getElementById('ex-after').style.display = 'block';
+
+  // 最後の問題かどうかでボタンテキスト変更
+  const isLast = App.exIndex >= App.exQuestions.length - 1;
+  document.getElementById('ex-next-btn').textContent = isLast ? '結果を見る →' : '次の問題 →';
+  document.getElementById('bottom-next').classList.add('show');
+
+  // 静的解説を即時表示（キャッシュ済み）
+  const expEl = document.getElementById('ex-explanation');
+  expEl.textContent = q.explanation || '解説データがありません。';
+  document.getElementById('ai-explain-btn').style.display = 'block';
+
+  // 学習記録保存（fire-and-forget）
+  gasPostFireAndForget('saveRecord', {
+    name: App.name, questionId: q.id, isCorrect, field: q.field, unit: q.unit
+  });
+}
+
+function loadAiExplanation() {
+  const q = App.exQuestions[App.exIndex];
+  const btn = document.getElementById('ai-explain-btn');
+  btn.textContent = '🤖 生成中...';
+  btn.disabled = true;
+  gasGet('getExplanation', {
+    question: q.question,
+    choices: JSON.stringify(q.choices),
+    correctIndex: q.answer,
+    userAnswerIndex: App._lastAnswer,
+    field: q.field,
+    unit: q.unit
+  })
+    .then(text => {
+      document.getElementById('ex-explanation').textContent = text || q.explanation || '解説データがありません。';
+      btn.style.display = 'none';
+    })
+    .catch(() => {
+      btn.textContent = '🤖 AIにもっと詳しく解説してもらう';
+      btn.disabled = false;
+    });
+}
+
+function nextExQuestion() {
+  document.getElementById('bottom-next').classList.remove('show');
+  if (App.exIndex >= App.exQuestions.length - 1) {
+    showExResult();
+    return;
+  }
+  App.exIndex++;
+  renderExQuestion();
+}
+
+function showExResult() {
+  const score = App.exScore;
+  const total = App.exQuestions.length;
+  const rate  = Math.round(score / total * 100);
+
+  document.getElementById('ex-score-num').textContent = score;
+  document.getElementById('ex-score-denom').textContent = total;
+  const msgs = ['もう少し！繰り返し練習しましょう 💪', 'いい調子！さらに伸ばしましょう 📈', '素晴らしい！合格に近づいています 🎉'];
+  document.getElementById('ex-score-msg').textContent = rate >= 70 ? msgs[2] : rate >= 50 ? msgs[1] : msgs[0];
+
+  // 問題別結果
+  const det = document.getElementById('ex-result-detail');
+  det.innerHTML = '<div class="card-title">問題別結果</div>';
+  App.exQuestions.forEach((q, i) => {
+    // 正誤は再計算できないのでスコアを使う（シンプルな表示）
+    det.innerHTML += `<div class="unit-row">
+      <span style="min-width:24px;font-size:13px">${i + 1}.</span>
+      <span class="unit-name" style="flex:1;font-size:12px">${q.unit}</span>
+      <span class="field-tag tag-${q.field}">${q.field}</span>
+    </div>`;
+  });
+
+  showScreen('screen-ex-result');
+}
+
+function confirmExitExercise() {
+  if (confirm('演習を終了しますか？')) showScreen('screen-dashboard');
+}
+
+// ============================================================
+// SCREEN 8: 進捗確認
+// ============================================================
+function loadProgress() {
+  showLoading('進捗データを取得中...');
+  gasGet('getProgress', { name: App.name })
+    .then(prog => {
+      hideLoading();
+      document.getElementById('prog-total').textContent = prog.total;
+      document.getElementById('prog-rate').textContent = prog.total > 0 ? `${prog.rate}%` : '-';
+      document.getElementById('prog-ok').textContent = prog.totalOk;
+
+      // 大分野
+      const fl = document.getElementById('prog-field-list');
+      fl.innerHTML = '';
+      const fields = ['宅建業法','権利関係','法令上の制限','税・その他'];
+      fields.forEach(f => {
+        const s = prog.field[f] || { ok: 0, total: 0 };
+        const r = s.total > 0 ? Math.round(s.ok / s.total * 100) : 0;
+        fl.innerHTML += `<div class="unit-row">
+          <span class="unit-name">${f}</span>
+          <div class="rate-bar-wrap"><div class="rate-bar" style="width:${r}%"></div></div>
+          <span class="rate-label">${s.total > 0 ? r + '%' : '-'}</span>
+        </div>`;
+      });
+
+      // 小単元（上位10）
+      const ul = document.getElementById('prog-unit-list');
+      ul.innerHTML = '';
+      const unitEntries = Object.entries(prog.unit)
+        .map(([k, v]) => ({ name: k, rate: v.total > 0 ? v.ok / v.total : 0, total: v.total, ok: v.ok }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 10);
+      if (unitEntries.length === 0) {
+        ul.textContent = 'まだ演習データがありません';
+        return;
+      }
+      unitEntries.forEach(u => {
+        const r = Math.round(u.rate * 100);
+        ul.innerHTML += `<div class="unit-row">
+          <span class="unit-name" style="font-size:12px">${u.name}</span>
+          <div class="rate-bar-wrap"><div class="rate-bar" style="width:${r}%"></div></div>
+          <span class="rate-label">${u.ok}/${u.total}</span>
+        </div>`;
+      });
+    })
+    .catch(() => hideLoading());
+}
+
+// ============================================================
+// SCREEN 9: スケジュール
+// ============================================================
+function loadSchedule() {
+  showLoading('スケジュールを生成中...');
+  gasGet('generateSchedule', { examYear: App.year })
+    .then(sched => {
+      hideLoading();
+      document.getElementById('sched-exam-info').innerHTML =
+        `📅 <strong>試験日</strong>：${sched.examDate}<br>⏰ <strong>残り週数</strong>：約${sched.weeksLeft}週`;
+
+      const list = document.getElementById('sched-list');
+      list.innerHTML = '';
+      sched.schedule.forEach(item => {
+        list.innerHTML += `<div class="schedule-item">
+          <span class="schedule-week">第${item.week}週</span>
+          <span class="schedule-date">${item.startDate}〜</span>
+          <span class="schedule-field">
+            <span class="field-tag tag-${item.field}">${item.field}</span>
+          </span>
+        </div>`;
+      });
+    })
+    .catch(() => hideLoading());
+}
+
+// ============================================================
+// ユーザーリセット
+// ============================================================
+function resetUser() {
+  if (confirm('レベル診断をやり直しますか？\n（学習記録は保持されます）')) {
+    showScreen('screen-setup');
+    document.getElementById('input-name').value = App.name;
+  }
+}
+
+// ============================================================
+// 画面遷移フック（データロードのタイミング制御）
+// ============================================================
+const _origShowScreen = showScreen;
+window.showScreen = function(id) {
+  _origShowScreen(id);
+  // 問題演習画面以外では下固定バーを隠す
+  if (id !== 'screen-question') {
+    document.getElementById('bottom-next').classList.remove('show');
+  }
+  if (id === 'screen-progress') loadProgress();
+  if (id === 'screen-schedule') loadSchedule();
+};
+
+// ============================================================
+// 初期化：既存ユーザーをチェック
+// ============================================================
+window.onload = function() {
+  const saved = localStorage.getItem('takken_user');
+  if (saved) {
+    // 既存ユーザー → 診断スキップしてダッシュボードへ
+    const u = JSON.parse(saved);
+    App.name = u.name || '';
+    App.year = u.year || 2026;
+    goToDashboard();
+  }
+  // バックグラウンドで全問題をプリフェッチ（2回目以降を高速化）
+  setTimeout(_warmupCache, 2000);
+};
+
+// ユーザー保存後にローカルストレージにも保存
+const _origSaveUser = saveUser;
+function goToDashboardWithSave() {
+  localStorage.setItem('takken_user', JSON.stringify({ name: App.name, year: App.year }));
+  goToDashboard();
+}
+// result画面のボタン対応
+document.querySelector('#screen-result .btn-primary').onclick = goToDashboardWithSave;
+</script>
+</body>
+</html>
