@@ -1102,11 +1102,21 @@ function _filterQuestions(all, field, unit, count) {
 }
 
 // 起動時にバックグラウンドで全問題をキャッシュ
+// 静的JSONを優先取得（GASより高速・Wi-Fi制限に強い）
+const QUESTIONS_JSON_URL = 'https://ysk-noda.github.io/takken/questions.json';
+
 function _warmupCache() {
   if (_loadCache()) return; // 既にキャッシュあり
-  gasGet('getAllQuestions', {})
+  _fetchAllQuestions()
     .then(all => { if (all && all.length) _saveCache(all); })
     .catch(() => {});
+}
+
+function _fetchAllQuestions() {
+  // まず静的JSONを試す（高速）
+  return fetch(QUESTIONS_JSON_URL)
+    .then(r => { if (!r.ok) throw new Error('json fetch failed'); return r.json(); })
+    .catch(() => gasGet('getAllQuestions', {})); // 失敗時はGASにフォールバック
 }
 
 // ============================================================
@@ -1131,7 +1141,7 @@ function startExercise() {
 
   // キャッシュなし → 全問取得してキャッシュ保存後に出題
   showLoading('問題を取得中...');
-  gasGet('getAllQuestions', {})
+  _fetchAllQuestions()
     .then(all => {
       hideLoading();
       if (!all || all.length === 0) { showToast('問題が見つかりませんでした'); return; }
