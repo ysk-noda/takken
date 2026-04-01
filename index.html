@@ -654,13 +654,26 @@ function gasPostFireAndForget(action, params) {
 }
 
 // 結果が必要な呼び出し（getAllQuestions, getProgress など）JSONP方式
-function gasGet(action, params) {
+function gasGet(action, params, timeoutMs) {
+  timeoutMs = timeoutMs || 12000;
   return new Promise((resolve, reject) => {
     const cbName = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     const query = new URLSearchParams({ action, callback: cbName, ...params }).toString();
     const script = document.createElement('script');
+    let done = false;
+
+    const timer = setTimeout(function() {
+      if (done) return;
+      done = true;
+      delete window[cbName];
+      if (document.body.contains(script)) document.body.removeChild(script);
+      reject(new Error('Timeout'));
+    }, timeoutMs);
 
     window[cbName] = function(data) {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
       delete window[cbName];
       if (document.body.contains(script)) document.body.removeChild(script);
       if (data && data.error) reject(new Error(data.error));
@@ -668,6 +681,9 @@ function gasGet(action, params) {
     };
 
     script.onerror = function() {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
       delete window[cbName];
       if (document.body.contains(script)) document.body.removeChild(script);
       reject(new Error('Network error'));
