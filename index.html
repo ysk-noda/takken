@@ -679,6 +679,44 @@ function gasGet(action, params) {
 }
 
 // ============================================================
+// スケジュール生成（クライアントサイド・GAS不要）
+// ============================================================
+function _generateSchedule(examYear) {
+  const today    = new Date();
+  const y = Number(examYear);
+  // 10月第3日曜日
+  const d = new Date(y, 9, 1);
+  const firstSun = d.getDay() === 0 ? d : new Date(y, 9, 1 + (7 - d.getDay()));
+  const examDate = new Date(firstSun.getFullYear(), firstSun.getMonth(), firstSun.getDate() + 14);
+  const msWeek   = 7 * 24 * 60 * 60 * 1000;
+  const weeksLeft = Math.max(1, Math.floor((examDate - today) / msWeek));
+
+  const ratio = [
+    { field: '宅建業法',     r: 0.40 },
+    { field: '権利関係',     r: 0.30 },
+    { field: '法令上の制限', r: 0.20 },
+    { field: '税・その他',   r: 0.10 }
+  ];
+  const schedule = [];
+  let cursor = 0;
+  ratio.forEach(item => {
+    const weeks = Math.max(1, Math.round(weeksLeft * item.r));
+    for (let w = 0; w < Math.min(weeks, 12); w++) {
+      if (cursor >= 12) return;
+      const dd = new Date(today);
+      dd.setDate(dd.getDate() + cursor * 7);
+      schedule.push({ week: cursor + 1, startDate: `${dd.getMonth()+1}/${dd.getDate()}`, field: item.field });
+      cursor++;
+    }
+  });
+  return {
+    examDate: `${examDate.getFullYear()}年${examDate.getMonth()+1}月${examDate.getDate()}日`,
+    weeksLeft,
+    schedule
+  };
+}
+
+// ============================================================
 // アプリ状態
 // ============================================================
 const App = {
@@ -942,19 +980,15 @@ function loadDashboard() {
     })
     .catch(() => hideLoading());
 
-  // スケジュールサマリー
-  gasGet('generateSchedule', { examYear: App.year })
-    .then(sched => {
-      if (!sched) return;
-      const thisWeek = sched.schedule[0];
-      if (thisWeek) {
-        document.getElementById('dash-current-week').innerHTML =
-          `今週：<strong>${thisWeek.field}</strong>（${thisWeek.startDate}〜）`;
-      }
-      document.getElementById('dash-exam-info').textContent =
-        `試験日：${sched.examDate}（残り約${sched.weeksLeft}週）`;
-    })
-    .catch(() => {});
+  // スケジュールサマリー（クライアントサイドで生成・GAS不要）
+  const sched = _generateSchedule(App.year);
+  const thisWeek = sched.schedule[0];
+  if (thisWeek) {
+    document.getElementById('dash-current-week').innerHTML =
+      `今週：<strong>${thisWeek.field}</strong>（${thisWeek.startDate}〜）`;
+  }
+  document.getElementById('dash-exam-info').textContent =
+    `試験日：${sched.examDate}（残り約${sched.weeksLeft}週）`;
 }
 
 // ============================================================
@@ -1281,26 +1315,21 @@ function loadProgress() {
 // SCREEN 9: スケジュール
 // ============================================================
 function loadSchedule() {
-  showLoading('スケジュールを生成中...');
-  gasGet('generateSchedule', { examYear: App.year })
-    .then(sched => {
-      hideLoading();
-      document.getElementById('sched-exam-info').innerHTML =
-        `📅 <strong>試験日</strong>：${sched.examDate}<br>⏰ <strong>残り週数</strong>：約${sched.weeksLeft}週`;
-
-      const list = document.getElementById('sched-list');
-      list.innerHTML = '';
-      sched.schedule.forEach(item => {
-        list.innerHTML += `<div class="schedule-item">
-          <span class="schedule-week">第${item.week}週</span>
-          <span class="schedule-date">${item.startDate}〜</span>
-          <span class="schedule-field">
-            <span class="field-tag tag-${item.field}">${item.field}</span>
-          </span>
-        </div>`;
-      });
-    })
-    .catch(() => hideLoading());
+  // スケジュール生成はクライアントサイドで完結（GAS不要）
+  const sched = _generateSchedule(App.year);
+  document.getElementById('sched-exam-info').innerHTML =
+    `📅 <strong>試験日</strong>：${sched.examDate}<br>⏰ <strong>残り週数</strong>：約${sched.weeksLeft}週`;
+  const list = document.getElementById('sched-list');
+  list.innerHTML = '';
+  sched.schedule.forEach(item => {
+    list.innerHTML += `<div class="schedule-item">
+      <span class="schedule-week">第${item.week}週</span>
+      <span class="schedule-date">${item.startDate}〜</span>
+      <span class="schedule-field">
+        <span class="field-tag tag-${item.field}">${item.field}</span>
+      </span>
+    </div>`;
+  });
 }
 
 // ============================================================
