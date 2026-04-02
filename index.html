@@ -228,6 +228,41 @@ input,select{
   border-radius:0 10px 10px 0;padding:16px;margin-top:10px;
   font-size:15px;line-height:1.9;white-space:pre-wrap;word-break:break-all;
 }
+
+/* ===== AIチャット ===== */
+#ai-chat-messages{
+  display:flex;flex-direction:column;gap:10px;margin-top:14px;
+}
+.chat-bubble{
+  padding:12px 14px;border-radius:14px;
+  font-size:14px;line-height:1.75;white-space:pre-wrap;word-break:break-all;
+  max-width:100%;
+}
+.chat-bubble.assistant{
+  background:#ebf8ff;border:1px solid #bee3f8;
+  border-radius:4px 14px 14px 14px;
+}
+.chat-bubble.user{
+  background:#2b6cb0;color:#fff;
+  border-radius:14px 4px 14px 14px;
+  align-self:flex-end;
+}
+#ai-chat-input-wrap{
+  display:flex;gap:8px;align-items:flex-end;margin-top:10px;
+}
+#ai-chat-input{
+  flex:1;border:1.5px solid #e2e8f0;border-radius:10px;
+  padding:10px 12px;font-size:15px;resize:none;
+  font-family:inherit;line-height:1.5;
+  background:#fff;
+}
+#ai-chat-input:focus{border-color:#2b6cb0;outline:none}
+#ai-chat-send{
+  background:#2b6cb0;color:#fff;border-radius:10px;
+  padding:0 18px;font-size:14px;font-weight:700;
+  min-height:44px;flex-shrink:0;white-space:nowrap;
+}
+#ai-chat-send:disabled{opacity:.55}
 .answer-result{text-align:center;padding:20px;border-radius:14px;margin-bottom:14px}
 .answer-result.correct{background:#f0fff4;border:2px solid #38a169}
 .answer-result.wrong{background:#fff5f5;border:2px solid #e53e3e}
@@ -534,10 +569,18 @@ input,select{
       <div class="card">
         <div class="card-title">解説</div>
         <div class="explanation-box" id="ex-explanation"></div>
+        <!-- AI解説ボタン（未開始時のみ表示） -->
         <button class="btn" id="ai-explain-btn" onclick="loadAiExplanation()"
-          style="margin-top:10px;background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;font-size:13px;min-height:40px">
+          style="display:none;margin-top:12px;background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;font-size:13px;min-height:44px">
           🤖 AIにもっと詳しく解説してもらう
         </button>
+        <!-- AIチャットエリア（解説開始後に表示） -->
+        <div id="ai-chat-messages" style="display:none"></div>
+        <div id="ai-chat-input-wrap" style="display:none">
+          <textarea id="ai-chat-input" rows="2" placeholder="AIに追加で質問する..."
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+          <button id="ai-chat-send" onclick="sendChatMessage()">送信</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1166,6 +1209,14 @@ function renderExQuestion() {
   document.getElementById('ex-after').style.display = 'none';
   document.getElementById('bottom-next').classList.remove('show');
 
+  // チャットリセット
+  App.chatMessages = [];
+  App.chatContext   = null;
+  document.getElementById('ai-chat-messages').innerHTML = '';
+  document.getElementById('ai-chat-messages').style.display   = 'none';
+  document.getElementById('ai-chat-input-wrap').style.display = 'none';
+  document.getElementById('ai-explain-btn').style.display     = 'none';
+
   // タグ
   document.getElementById('ex-meta').innerHTML = `
     <span class="q-tag field-tag tag-${q.field}">${q.field}</span>
@@ -1227,26 +1278,93 @@ function answerEx(selectedIndex) {
 }
 
 function loadAiExplanation() {
-  const q = App.exQuestions[App.exIndex];
+  const q   = App.exQuestions[App.exIndex];
   const btn = document.getElementById('ai-explain-btn');
   btn.textContent = '🤖 生成中...';
-  btn.disabled = true;
-  gasGet('getExplanation', {
-    question: q.question,
-    choices: JSON.stringify(q.choices),
-    correctIndex: q.answer,
+  btn.disabled    = true;
+
+  // 問題コンテキストを保存
+  App.chatContext = {
+    question:       q.question,
+    choices:        q.choices,
+    correctIndex:   q.answer,
     userAnswerIndex: App._lastAnswer,
-    field: q.field,
-    unit: q.unit
-  })
-    .then(text => {
-      document.getElementById('ex-explanation').textContent = text || q.explanation || '解説データがありません。';
+    field:          q.field,
+    unit:           q.unit
+  };
+
+  // 初回ユーザーメッセージ（解説リクエスト）
+  const firstMsg = 'この問題を詳しく解説してください。\n' +
+    '① この問題が問うていること\n' +
+    '② 正解の理由（条文・判例を含めて）\n' +
+    '③ 間違えやすいポイント・ひっかけ\n' +
+    '④ 関連する重要論点（2〜3点）';
+  App.chatMessages = [{ role: 'user', content: firstMsg }];
+
+  _callChatApi()
+    .then(function(text) {
+      App.chatMessages.push({ role: 'assistant', content: text });
       btn.style.display = 'none';
+      const msgsEl = document.getElementById('ai-chat-messages');
+      msgsEl.innerHTML = '';
+      msgsEl.style.display = 'flex';
+      _appendChatBubble('assistant', text);
+      document.getElementById('ai-chat-input-wrap').style.display = 'flex';
     })
-    .catch(() => {
+    .catch(function() {
       btn.textContent = '🤖 AIにもっと詳しく解説してもらう';
-      btn.disabled = false;
+      btn.disabled    = false;
     });
+}
+
+function sendChatMessage() {
+  const inputEl = document.getElementById('ai-chat-input');
+  const text    = inputEl.value.trim();
+  if (!text) return;
+
+  inputEl.value = '';
+  App.chatMessages.push({ role: 'user', content: text });
+  _appendChatBubble('user', text);
+
+  const sendBtn   = document.getElementById('ai-chat-send');
+  sendBtn.disabled    = true;
+  sendBtn.textContent = '送信中...';
+
+  _callChatApi()
+    .then(function(responseText) {
+      App.chatMessages.push({ role: 'assistant', content: responseText });
+      _appendChatBubble('assistant', responseText);
+      sendBtn.disabled    = false;
+      sendBtn.textContent = '送信';
+    })
+    .catch(function() {
+      // 失敗したらユーザーメッセージを取り消す
+      App.chatMessages.pop();
+      _appendChatBubble('assistant', '⚠️ 送信に失敗しました。再度お試しください。');
+      sendBtn.disabled    = false;
+      sendBtn.textContent = '送信';
+    });
+}
+
+function _callChatApi() {
+  // URL長制限対策：直近6メッセージのみ送信
+  const msgs = App.chatMessages.slice(-6);
+  return gasGet('chatExplanation', {
+    messages: JSON.stringify(msgs),
+    context:  JSON.stringify(App.chatContext)
+  }, 25000).then(function(result) {
+    if (!result || result.error) throw new Error(result ? result.error : 'no response');
+    return result.text || '応答を取得できませんでした。';
+  });
+}
+
+function _appendChatBubble(role, text) {
+  const container = document.getElementById('ai-chat-messages');
+  const bubble    = document.createElement('div');
+  bubble.className = 'chat-bubble ' + role;
+  bubble.textContent = text;
+  container.appendChild(bubble);
+  bubble.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function nextExQuestion() {
