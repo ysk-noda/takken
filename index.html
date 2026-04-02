@@ -685,7 +685,7 @@ input,select{
 // ============================================================
 // GAS API エンドポイント
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxLFCuAHUZYj-efmlcUvyYs7x6vTt_Z_vcAfacx2IJj3PcPmIqZgK4zx-X_Q729XW4m/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxO4EPwJPrt4kNcumYiMsiF8H4OlZbhMMswS_iRl3fjnCLu5agK8ImrG5Ep-qOsAlrD/exec';
 
 // 結果が不要な呼び出し（saveUser, saveRecord など）
 function gasPostFireAndForget(action, params) {
@@ -1347,11 +1347,21 @@ function sendChatMessage() {
 }
 
 function _callChatApi() {
-  // URL長制限対策：直近6メッセージのみ送信
+  // URL長制限対策①：直近6メッセージのみ送信
   const msgs = App.chatMessages.slice(-6);
+  // URL長制限対策②：contextの問題文・選択肢を短縮（GAS URL上限対策）
+  const ctx = App.chatContext;
+  const safeCtx = {
+    question:        (ctx.question || '').slice(0, 200),
+    choices:         (ctx.choices  || []).map(function(c){ return c.slice(0, 80); }),
+    correctIndex:    ctx.correctIndex,
+    userAnswerIndex: ctx.userAnswerIndex,
+    field:           ctx.field,
+    unit:            ctx.unit
+  };
   return gasGet('chatExplanation', {
     messages: JSON.stringify(msgs),
-    context:  JSON.stringify(App.chatContext)
+    context:  JSON.stringify(safeCtx)
   }, 25000).then(function(result) {
     if (!result || result.error) throw new Error(result ? result.error : 'no response');
     return result.text || '応答を取得できませんでした。';
