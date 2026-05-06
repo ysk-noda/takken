@@ -1311,9 +1311,14 @@ function loadAiExplanation() {
       _appendChatBubble('assistant', text);
       document.getElementById('ai-chat-input-wrap').style.display = 'flex';
     })
-    .catch(function() {
+    .catch(function(err) {
+      console.error('[AI解説エラー]', err && err.message);
       btn.textContent = '🤖 AIにもっと詳しく解説してもらう';
       btn.disabled    = false;
+      // エラー内容を画面に表示して原因を特定
+      const msgsEl = document.getElementById('ai-chat-messages');
+      msgsEl.style.display = 'flex';
+      _appendChatBubble('assistant', '⚠️ エラー: ' + (err && err.message || '不明なエラー'));
     });
 }
 
